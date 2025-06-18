@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Track Profitability Predictor</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * { font-family: 'Inter', sans-serif; }
+        
+        body { 
+            margin: 0; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+        
+        .animated-bg {
+            background: linear-gradient(-45deg, #667eea, #764ba2, #f093fb, #f5576c);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+        
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        .glass {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        .glass-strong {
+            background: rgba(255, 255, 255, 0.15);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            transition: all 0.3s ease;
+            transform: translateY(0);
+        }
+        
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #5a67d8 0%, #6b46c1 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        
+        .metric-card {
+            background: rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            transition: all 0.3s ease;
+        }
+        
+        .metric-card:hover {
+            background: rgba(255, 255, 255, 0.12);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+        
+        .input-field {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .input-field:focus {
+            background: rgba(255, 255, 255, 0.15);
+            border-color: rgba(255, 255, 255, 0.4);
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.1);
+        }
+        
+        .market-tag {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            transition: all 0.3s ease;
+            transform: scale(1);
+        }
+        
+        .market-tag:hover {
+            background: linear-gradient(135deg, #43a5f5 0%, #00d4ff 100%);
+            transform: scale(1.05);
+        }
+        
+        .status-badge {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.8; }
+        }
+        
+        .floating-icon {
+            animation: float 3s ease-in-out infinite;
+        }
+        
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #f093fb 100%);
+            background-size: 200% 100%;
+            animation: shimmer 2s infinite;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: -200% 0; }
+            100% { background-position: 200% 0; }
+        }
+        
+        .table-row {
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+        
+        .table-row:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: scale(1.01);
+        }
+        
+        .centered-content {
+            text-align: center;
+        }
+        
+        .metric-card {
+            text-align: center;
+        }
+        
+        .input-section {
+            text-align: center;
+        }
+        
+        .section-divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            margin: 2rem 0;
+        }
+        
+        .loading-spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid white;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="animated-bg min-h-screen">
+    <!-- Header -->
+    <div class="relative z-10">
+        <div class="max-w-7xl mx-auto px-6 py-8">
+            <div class="text-center mb-12">
+                <div class="floating-icon inline-block mb-4">
+                    <i class="fas fa-music text-6xl text-white opacity-80"></i>
+                </div>
+                <h1 class="text-5xl md:text-6xl font-bold text-white mb-6 glow-text">
+                    Music Profitability Predictor
+                </h1>
+                <p class="text-xl text-white/80 max-w-2xl mx-auto leading-relaxed">
+                    Harness the power of data to predict ROI, break-even timelines, and profitability for your music investments with precision
+                </p>
+                <div class="section-divider"></div>
+            </div>
+
+            <div class="grid grid-cols-1 xl:grid-cols-4 gap-8">
+                <!-- Input Panel -->
+                <div class="xl:col-span-1">
+                    <div class="glass-strong rounded-2xl p-8 sticky top-8">
+                        <div class="flex items-center justify-center mb-8">
+                            <i class="fas fa-sliders-h text-2xl text-white mr-3"></i>
+                            <h2 class="text-2xl font-bold text-white">Track Configuration</h2>
+                        </div>
+                        
+                        <div class="space-y-6">
+                            <div class="group input-section">
+                                <label class="block text-white/90 font-medium mb-3 flex items-center justify-center">
+                                    <i class="fas fa-tag mr-2"></i>
+                                    Song Title
+                                </label>
+                                <input type="text" id="songTitle" class="input-field w-full px-4 py-3 rounded-xl text-white placeholder-white/50 text-center" placeholder="Enter your track name">
+                            </div>
+
+                            <div class="group input-section">
+                                <label class="block text-white/90 font-medium mb-3 flex items-center justify-center">
+                                    <i class="fas fa-dollar-sign mr-2"></i>
+                                    Investment Amount (DKK)
+                                </label>
+                                <input type="number" id="investment" value="50000" class="input-field w-full px-4 py-3 rounded-xl text-white placeholder-white/50 text-center">
+                            </div>
+
+                            <div class="group input-section">
+                                <label class="block text-white/90 font-medium mb-3 flex items-center justify-center">
+                                    <i class="fas fa-guitar mr-2"></i>
+                                    Genre
+                                </label>
+                                <select id="genre" class="input-field w-full px-4 py-3 rounded-xl text-white text-center">
+                                    <option value="Phonk" selected style="background: #1f2937;">Phonk</option>
+                                    <option value="Pop" style="background: #1f2937;">Pop</option>
+                                    <option value="Hip-Hop" style="background: #1f2937;">Hip-Hop</option>
+                                    <option value="Drum & Bass" style="background: #1f2937;">Drum & Bass</option>
+                                    <option value="Techno" style="background: #1f2937;">Techno</option>
+                                    <option value="House" style="background: #1f2937;">House</option>
+                                    <option value="Electronic" style="background: #1f2937;">Electronic</option>
+                                    <option value="Brazilian Funk" style="background: #1f2937;">Brazilian Funk</option>
+                                </select>
+                            </div>
+
+                            <div class="group input-section">
+                                <label class="block text-white/90 font-medium mb-3 flex items-center justify-center">
+                                    <i class="fab fa-spotify mr-2"></i>
+                                    Daily Spotify Streams
+                                </label>
+                                <input type="number" id="dailyStreams" value="10000" class="input-field w-full px-4 py-3 rounded-xl text-white placeholder-white/50 text-center">
+                            </div>
+
+                            <div class="group input-section">
+                                <label class="block text-white/90 font-medium mb-3 flex items-center justify-center">
+                                    <i class="fas fa-globe mr-2"></i>
+                                    Target Markets
+                                </label>
+                                <div id="selectedMarkets" class="flex flex-wrap gap-2 mb-3 justify-center"></div>
+                                <select id="marketSelect" class="input-field w-full px-4 py-3 rounded-xl text-white text-center">
+                                    <option value="" style="background: #1f2937;">🌍 Add market...</option>
+                                    <option value="NO" style="background: #1f2937;">🇳🇴 Norway (0.027)</option>
+                                    <option value="DK" style="background: #1f2937;">🇩🇰 Denmark (0.027)</option>
+                                    <option value="SE" style="background: #1f2937;">🇸🇪 Sweden (0.025)</option>
+                                    <option value="NL" style="background: #1f2937;">🇳🇱 Netherlands (0.024)</option>
+                                    <option value="AT" style="background: #1f2937;">🇦🇹 Austria (0.022)</option>
+                                    <option value="BE" style="background: #1f2937;">🇧🇪 Belgium (0.020)</option>
+                                    <option value="AU" style="background: #1f2937;">🇦🇺 Australia (0.019)</option>
+                                    <option value="CA" style="background: #1f2937;">🇨🇦 Canada (0.017)</option>
+                                    <option value="FR" style="background: #1f2937;">🇫🇷 France (0.016)</option>
+                                    <option value="IT" style="background: #1f2937;">🇮🇹 Italy (0.012)</option>
+                                    <option value="ES" style="background: #1f2937;">🇪🇸 Spain (0.010)</option>
+                                    <option value="PT" style="background: #1f2937;">🇵🇹 Portugal (0.010)</option>
+                                    <option value="BR" style="background: #1f2937;">🇧🇷 Brazil (0.007)</option>
+                                    <option value="MX" style="background: #1f2937;">🇲🇽 Mexico (0.007)</option>
+                                    <option value="UY" style="background: #1f2937;">🇺🇾 Uruguay (0.007)</option>
+                                    <option value="CL" style="background: #1f2937;">🇨🇱 Chile (0.005)</option>
+                                    <option value="AR" style="background: #1f2937;">🇦🇷 Argentina (0.004)</option>
+                                </select>
+                            </div>
+
+                            <div class="group input-section">
+                                <label class="block text-white/90 font-medium mb-3 flex items-center justify-center">
+                                    <i class="fas fa-chart-line mr-2"></i>
+                                    Growth Scenario
+                                </label>
+                                <select id="upside" class="input-field w-full px-4 py-3 rounded-xl text-white text-center">
+                                    <option value="decreasing" style="background: #1f2937;">📉 Decreasing Streams</option>
+                                    <option value="stable" selected style="background: #1f2937;">📊 Stable Performance</option>
+                                    <option value="small_upside" style="background: #1f2937;">📈 Small Upside (1.25x peak)</option>
+                                    <option value="big_upside" style="background: #1f2937;">🚀 Big Upside (2.5x peak)</option>
+                                </select>
+                            </div>
+
+                            <button onclick="calculatePredictions()" class="btn-primary w-full py-4 px-6 rounded-xl text-white font-bold text-lg shadow-lg flex items-center justify-center space-x-3">
+                                <i class="fas fa-calculator"></i>
+                                <span>Predict Profitability</span>
+                                <i class="fas fa-arrow-right"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Panel -->
+                <div id="resultsPanel" class="xl:col-span-3" style="display: none;">
+                    <div class="glass-strong rounded-2xl p-8 mb-8">
+                        <div class="flex items-center justify-center mb-8">
+                            <i class="fas fa-chart-pie text-2xl text-white mr-3"></i>
+                            <h2 class="text-2xl font-bold text-white">AI-Powered Predictions</h2>
+                        </div>
+                        <div id="results" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+                    </div>
+
+                    <!-- Platform Distribution -->
+                    <div class="glass-strong rounded-2xl p-8 mb-8">
+                        <div class="flex items-center justify-center mb-6">
+                            <i class="fas fa-broadcast-tower text-2xl text-white mr-3"></i>
+                            <h3 class="text-xl font-bold text-white">Revenue Stream Analysis</h3>
+                        </div>
+                        <div id="platformGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Monthly Breakdown Table -->
+            <div id="monthlyTable" class="mt-8 glass-strong rounded-2xl p-8" style="display: none;">
+                <div class="flex items-center justify-center mb-8">
+                    <i class="fas fa-calendar-alt text-2xl text-white mr-3"></i>
+                    <h2 class="text-2xl font-bold text-white">Monthly Performance Forecast</h2>
+                </div>
+                
+                <div class="overflow-x-auto">
+                    <table class="w-full text-white">
+                        <thead>
+                            <tr class="border-b-2 border-white/20">
+                                <th class="text-center py-4 px-3 font-semibold">
+                                    <i class="fas fa-calendar mr-2"></i>Month
+                                </th>
+                                <th class="text-center py-4 px-3 font-semibold">
+                                    <i class="fas fa-play mr-2"></i>Streams
+                                </th>
+                                <th class="text-center py-4 px-3 font-semibold">
+                                    <i class="fas fa-coins mr-2"></i>Monthly Revenue
+                                </th>
+                                <th class="text-center py-4 px-3 font-semibold">
+                                    <i class="fas fa-chart-area mr-2"></i>Cumulative Revenue
+                                </th>
+                                <th class="text-center py-4 px-3 font-semibold">
+                                    <i class="fas fa-balance-scale mr-2"></i>Profit/Loss
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="monthlyTableBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data (same as before)
+        const spotifyCountryRates = {
+            'AR': 0.004, 'AT': 0.022, 'AU': 0.019, 'BE': 0.020, 'BR': 0.007,
+            'CA': 0.017, 'CL': 0.005, 'DE': 0.021, 'DK': 0.027, 'ES': 0.010,
+            'FI': 0.026, 'FR': 0.016, 'GB': 0.029, 'IT': 0.012, 'MX': 0.007,
+            'NL': 0.024, 'NO': 0.027, 'PT': 0.010, 'SE': 0.025, 'UY': 0.007, 'US': 0.025
+        };
+
+        const countryNames = {
+            'AR': 'Argentina', 'AT': 'Austria', 'AU': 'Australia', 'BE': 'Belgium', 'BR': 'Brazil',
+            'CA': 'Canada', 'CL': 'Chile', 'DE': 'Germany', 'DK': 'Denmark', 'ES': 'Spain',
+            'FI': 'Finland', 'FR': 'France', 'GB': 'United Kingdom', 'IT': 'Italy', 'MX': 'Mexico',
+            'NL': 'Netherlands', 'NO': 'Norway', 'PT': 'Portugal', 'SE': 'Sweden', 'UY': 'Uruguay', 'US': 'United States'
+        };
+
+        const countryFlags = {
+            'AR': '🇦🇷', 'AT': '🇦🇹', 'AU': '🇦🇺', 'BE': '🇧🇪', 'BR': '🇧🇷',
+            'CA': '🇨🇦', 'CL': '🇨🇱', 'DE': '🇩🇪', 'DK': '🇩🇰', 'ES': '🇪🇸',
+            'FI': '🇫🇮', 'FR': '🇫🇷', 'GB': '🇬🇧', 'IT': '🇮🇹', 'MX': '🇲🇽',
+            'NL': '🇳🇱', 'NO': '🇳🇴', 'PT': '🇵🇹', 'SE': '🇸🇪', 'UY': '🇺🇾', 'US': '🇺🇸'
+        };
+
+        const genreMultipliers = {
+            'Phonk': 1.15, 'Pop': 1.10, 'Hip-Hop': 1.08, 'Drum & Bass': 1.05,
+            'Techno': 1.02, 'House': 1.02, 'Electronic': 1.00, 'Brazilian Funk': 0.95
+        };
+
+        const platformDistribution = {
+            'Spotify': 0.55, 'YouTube': 0.20, 'Apple Music': 0.12,
+            'TikTok': 0.06, 'Amazon Music': 0.04, 'Other': 0.03
+        };
+
+        const platformIcons = {
+            'Spotify': 'fab fa-spotify', 'YouTube': 'fab fa-youtube', 'Apple Music': 'fab fa-apple',
+            'TikTok': 'fab fa-tiktok', 'Amazon Music': 'fab fa-amazon', 'Other': 'fas fa-music'
+        };
+
+        const upsideScenarios = {
+            'decreasing': { multiplier: 0.6, peakMonth: 2, decayRate: 0.18 },
+            'stable': { multiplier: 0.85, peakMonth: 3, decayRate: 0.10 },
+            'small_upside': { multiplier: 1.25, peakMonth: 2, decayRate: 0.12 },
+            'big_upside': { multiplier: 2.5, peakMonth: 4, decayRate: 0.15 }
+        };
+
+        let selectedMarkets = ['US', 'DE', 'GB'];
+
+        // Market management
+        document.getElementById('marketSelect').addEventListener('change', function(e) {
+            if (e.target.value && !selectedMarkets.includes(e.target.value)) {
+                selectedMarkets.push(e.target.value);
+                updateMarketDisplay();
+                e.target.value = '';
+            }
+        });
+
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('market-tag')) {
+                const market = e.target.dataset.market;
+                selectedMarkets = selectedMarkets.filter(m => m !== market);
+                updateMarketDisplay();
+            }
+        });
+
+        function updateMarketDisplay() {
+            const container = document.getElementById('selectedMarkets');
+            container.innerHTML = selectedMarkets.map(market => 
+                `<span class="market-tag px-4 py-2 rounded-full text-sm font-medium cursor-pointer flex items-center space-x-2" data-market="${market}">
+                    <span>${countryFlags[market] || '🌍'} ${countryNames[market]}</span>
+                    <span class="opacity-75">(${spotifyCountryRates[market].toFixed(3)})</span>
+                    <i class="fas fa-times ml-1"></i>
+                </span>`
+            ).join('');
+        }
+
+        function calculatePredictions() {
+            // Show loading state
+            const btn = document.querySelector('button');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<div class="loading-spinner"></div><span>Calculating...</span>';
+            btn.disabled = true;
+
+            // Simulate calculation time for better UX
+            setTimeout(() => {
+                performCalculation();
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }, 1500);
+        }
+
+        function performCalculation() {
+            // Get inputs
+            const songTitle = document.getElementById('songTitle').value || 'Untitled Track';
+            const investment = parseInt(document.getElementById('investment').value) || 50000;
+            const genre = document.getElementById('genre').value;
+            const dailyStreams = parseInt(document.getElementById('dailyStreams').value) || 10000;
+            const upsideLevel = document.getElementById('upside').value;
+
+            // Calculate Spotify revenue per stream
+            const spotifyRevenuePerStream = selectedMarkets.reduce((acc, market) => 
+                acc + (spotifyCountryRates[market] || 0.015), 0) / selectedMarkets.length;
+            
+            const genreMultiplier = genreMultipliers[genre] || 1.0;
+            const effectiveSpotifyRate = spotifyRevenuePerStream * genreMultiplier;
+            
+            // Calculate total revenue per stream (Spotify is 55%)
+            const totalRevenuePerStream = effectiveSpotifyRate / 0.55;
+            
+            const scenario = upsideScenarios[upsideLevel];
+            
+            // Generate 36-month projection
+            const monthlyData = [];
+            let cumulativeRevenue = 0;
+            let breakEvenMonth = null;
+            
+            for (let month = 1; month <= 36; month++) {
+                let streamMultiplier = 1;
+                
+                if (month <= scenario.peakMonth) {
+                    streamMultiplier = 1 + ((scenario.multiplier - 1) * (month / scenario.peakMonth));
+                } else {
+                    const decayMonths = month - scenario.peakMonth;
+                    streamMultiplier = scenario.multiplier * Math.exp(-scenario.decayRate * decayMonths);
+                }
+                
+                const monthlyStreams = dailyStreams * 30 * streamMultiplier;
+                const monthlyRevenue = monthlyStreams * totalRevenuePerStream;
+                cumulativeRevenue += monthlyRevenue;
+                
+                if (!breakEvenMonth && cumulativeRevenue >= investment) {
+                    breakEvenMonth = month;
+                }
+                
+                monthlyData.push({
+                    month: month,
+                    monthlyStreams: Math.round(monthlyStreams),
+                    monthlyRevenue: Math.round(monthlyRevenue),
+                    cumulativeRevenue: Math.round(cumulativeRevenue),
+                    investment: investment,
+                    profit: Math.round(cumulativeRevenue - investment)
+                });
+            }
+            
+            const finalROI = ((cumulativeRevenue / investment) - 1) * 100;
+            const totalStreams = monthlyData.reduce((sum, month) => sum + month.monthlyStreams, 0);
+            
+            // Calculate suggested price (break-even in 30-36 months)
+            const revenueAt33Months = monthlyData[32]?.cumulativeRevenue || cumulativeRevenue;
+            const suggestedPrice = Math.round(revenueAt33Months * 0.8);
+            
+            // Price assessment
+            let priceAssessment = 'normal';
+            const expectedRevenue = totalStreams * totalRevenuePerStream;
+            const priceToRevenueRatio = investment / expectedRevenue;
+            
+            if (priceToRevenueRatio < 0.3) priceAssessment = 'excellent';
+            else if (priceToRevenueRatio < 0.5) priceAssessment = 'good';
+            else if (priceToRevenueRatio < 0.8) priceAssessment = 'normal';
+            else if (priceToRevenueRatio < 1.2) priceAssessment = 'high';
+            else priceAssessment = 'very_high';
+            
+            // Platform revenue breakdown
+            const platformRevenue = Object.entries(platformDistribution).map(([platform, percentage]) => ({
+                platform,
+                revenue: Math.round(cumulativeRevenue * percentage),
+                percentage: percentage * 100
+            }));
+            
+            // Display results
+            displayResults({
+                songTitle, investment, breakEvenMonth, finalROI, totalStreams,
+                priceAssessment, platformRevenue, effectiveSpotifyRate,
+                totalRevenuePerStream, spotifyRevenuePerStream, genreMultiplier,
+                finalRevenue: Math.round(cumulativeRevenue), suggestedPrice,
+                isProfitable: finalROI > 0, monthlyData
+            });
+        }
+
+        function displayResults(predictions) {
+            const resultsPanel = document.getElementById('resultsPanel');
+            const resultsDiv = document.getElementById('results');
+            const monthlyTable = document.getElementById('monthlyTable');
+            const monthlyTableBody = document.getElementById('monthlyTableBody');
+            const platformGrid = document.getElementById('platformGrid');
+            
+            resultsPanel.style.display = 'block';
+            monthlyTable.style.display = 'block';
+            
+            // Scroll to results
+            resultsPanel.scrollIntoView({ behavior: 'smooth' });
+            
+            const priceColors = {
+                'excellent': '#22c55e', 'good': '#84cc16', 'normal': '#eab308',
+                'high': '#f97316', 'very_high': '#ef4444'
+            };
+            
+            const priceTexts = {
+                'excellent': 'Excellent Deal', 'good': 'Good Price', 'normal': 'Fair Price',
+                'high': 'High Price', 'very_high': 'Very High Price'
+            };
+            
+            resultsDiv.innerHTML = `
+                <div class="metric-card rounded-xl p-6">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-music text-2xl text-blue-300 mr-3"></i>
+                        <div class="text-white/70 text-sm font-medium">Track</div>
+                    </div>
+                    <div class="text-2xl font-bold text-white truncate">${predictions.songTitle}</div>
+                </div>
+                
+                <div class="metric-card rounded-xl p-6">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-certificate text-2xl text-yellow-400 mr-3"></i>
+                        <div class="text-white/70 text-sm font-medium">Price Assessment</div>
+                    </div>
+                    <div class="status-badge px-4 py-2 rounded-full text-sm font-bold inline-block" style="background-color: ${priceColors[predictions.priceAssessment]}">
+                        ${priceTexts[predictions.priceAssessment]}
+                    </div>
+                </div>
+                
+                <div class="metric-card rounded-xl p-6 bg-gradient-to-br from-green-500/20 to-emerald-600/20">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-lightbulb text-2xl text-green-400 mr-3"></i>
+                        <div class="text-white/70 text-sm font-medium">AI Suggested Price</div>
+                    </div>
+                    <div class="text-3xl font-bold text-green-400">${predictions.suggestedPrice.toLocaleString()} DKK</div>
+                    <div class="text-sm text-white/60 mt-1">2.5-3 year break-even</div>
+                </div>
+                
+                <div class="metric-card rounded-xl p-6">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-chart-line text-2xl text-purple-400 mr-3"></i>
+                        <div class="text-white/70 text-sm font-medium">Profitability Status</div>
+                    </div>
+                    <div class="status-badge px-4 py-2 rounded-full text-sm font-bold inline-block ${predictions.isProfitable ? 'bg-green-500' : 'bg-red-500'}">
+                        ${predictions.isProfitable ? '✅ PROFITABLE' : '❌ UNPROFITABLE'}
+                    </div>
+                </div>
+                
+                <div class="metric-card rounded-xl p-6">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-clock text-2xl text-orange-400 mr-3"></i>
+                        <div class="text-white/70 text-sm font-medium">Break-even Time</div>
+                    </div>
+                    <div class="text-3xl font-bold text-white">${predictions.breakEvenMonth ? predictions.breakEvenMonth + ' months' : 'Never'}</div>
+                    <div class="text-sm text-white/60 mt-1">${predictions.breakEvenMonth ? Math.round(predictions.breakEvenMonth/12*10)/10 + ' years' : 'Not profitable'}</div>
+                </div>
+                
+                <div class="metric-card rounded-xl p-6">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-percentage text-2xl text-cyan-400 mr-3"></i>
+                        <div class="text-white/70 text-sm font-medium">36-Month ROI</div>
+                    </div>
+                    <div class="text-3xl font-bold ${predictions.finalROI > 0 ? 'text-green-400' : 'text-red-400'}">${predictions.finalROI.toFixed(1)}%</div>
+                    <div class="text-sm text-white/60 mt-1">Total return on investment</div>
+                </div>
+                
+                <div class="metric-card rounded-xl p-6">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-coins text-2xl text-yellow-400 mr-3"></i>
+                        <div class="text-white/70 text-sm font-medium">Total Revenue (36m)</div>
+                    </div>
+                    <div class="text-3xl font-bold text-white">${predictions.finalRevenue.toLocaleString()} DKK</div>
+                    <div class="text-sm text-white/60 mt-1">Projected total earnings</div>
+                </div>
+                
+                <div class="metric-card rounded-xl p-6">
+                    <div class="flex items-center mb-3">
+                        <i class="fas fa-play text-2xl text-pink-400 mr-3"></i>
+                        <div class="text-white/70 text-sm font-medium">Total Streams (36m)</div>
+                    </div>
+                    <div class="text-3xl font-bold text-white">${predictions.totalStreams.toLocaleString()}</div>
+                    <div class="text-sm text-white/60 mt-1">Projected total plays</div>
+                </div>
+                
+                <div class="metric-card rounded-xl p-6">
+                    <div class="flex items-center mb-3">
+                        <i class="fab fa-spotify text-2xl text-green-400 mr-3"></i>
+                        <div class="text-white/70 text-sm font-medium">Spotify Rate (Avg)</div>
+                    </div>
+                    <div class="text-2xl font-bold text-white">${predictions.spotifyRevenuePerStream.toFixed(6)} DKK</div>
+                    <div class="text-sm text-white/60 mt-1">Per stream revenue</div>
+                </div>
+            `;
+            
+            // Platform revenue breakdown
+            platformGrid.innerHTML = predictions.platformRevenue.map(p => `
+                <div class="metric-card rounded-xl p-4 text-center">
+                    <div class="flex items-center justify-center mb-3">
+                        <i class="${platformIcons[p.platform]} text-2xl text-white mr-2"></i>
+                        <div class="text-white font-medium">${p.platform}</div>
+                    </div>
+                    <div class="text-xl font-bold text-white">${p.percentage.toFixed(1)}%</div>
+                    <div class="text-sm text-white/70">${p.revenue.toLocaleString()} DKK</div>
+                    <div class="progress-bar h-2 rounded-full mt-2" style="width: ${p.percentage}%"></div>
+                </div>
+            `).join('');
+            
+            // Monthly table
+            monthlyTableBody.innerHTML = predictions.monthlyData.slice(0, 12).map((month, index) => `
+                <tr class="table-row border-b border-white/10">
+                    <td class="py-4 px-3 font-medium">${month.month}</td>
+                    <td class="py-4 px-3">${month.monthlyStreams.toLocaleString()}</td>
+                    <td class="py-4 px-3">${month.monthlyRevenue.toLocaleString()} DKK</td>
+                    <td class="py-4 px-3 font-medium">${month.cumulativeRevenue.toLocaleString()} DKK</td>
+                    <td class="py-4 px-3 font-bold ${month.profit >= 0 ? 'text-green-400' : 'text-red-400'}">
+                        ${month.profit >= 0 ? '+' : ''}${month.profit.toLocaleString()} DKK
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // Initialize
+        updateMarketDisplay();
+    </script>
+</body>
+</html>
